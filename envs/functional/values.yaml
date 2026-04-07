@@ -2,7 +2,7 @@ wezvabackendapp:
   wezvabackendapp:
     image:
       image: 445343419895.dkr.ecr.ap-south-1.amazonaws.comwezvatechbackend
-      tag: /wezvatechbackend:fb24
+      tag: fb25
 backendSvc:
   ports:
   - nodePort: 30000
