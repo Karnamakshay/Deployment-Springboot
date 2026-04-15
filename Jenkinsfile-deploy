@@ -1,27 +1,61 @@
 pipeline {
- agent none
- parameters {
-   string(name: 'ECRURL', defaultValue: '445343419895.dkr.ecr.ap-south-1.amazonaws.com', description: 'Please Enter ECR REGISTRY URL with / at the end')
-   string(name: 'REPO', defaultValue: 'wezvatechbackend', description: 'Please Enter the Repo to use?')
-   string(name: 'IMAGE', defaultValue: 'rel1', description: 'Please Enter the Image Tag to Deploy?')
-   password(name: 'PASSWD', defaultValue: '', description: 'Please Enter your Gitlab password')
-   choice(name:'TEST', choices: ['functional', 'integration', 'regression', 'uat', 'release' ] ,description: 'select where need to deploy')
- }
- stages {
-  stage('Deploy')
-  {
-    agent { label 'demo' }
-    steps {
-        git branch: 'main', credentialsId: 'GithubCred', url: 'https://github.com/Karnamakshay/Deployment-Springboot.git'
-            dir ("./envs/${params.TEST}") {
-              sh "sed -i 's/repository:.[0-9][0-9].*/image: $ECRURL$REPO/g' values.yaml" // make sure the ECRURL has \/ at the end
-              sh "sed -i 's/tag:.*/tag: $IMAGE/g' values.yaml"
-            }
+    agent none
 
-                sh 'git commit -a -m "New deployment for Build $IMAGE"'
-                sh "git push https://Karnamakshay:${PASSWD}@github.com/Karnamakshay/Deployment-Springboot.git"
+    parameters {
+        string(name: 'ECRURL',
+               defaultValue: '445343419895.dkr.ecr.ap-south-1.amazonaws.com',
+               description: 'Please Enter ECR REGISTRY URL with / at the end')
 
+        string(name: 'REPO',
+               defaultValue: 'wezvatechbackend',
+               description: 'Please Enter the Repo to use?')
+
+        string(name: 'IMAGE',
+               defaultValue: 'rel1',
+               description: 'Please Enter the Image Tag to Deploy?')
+
+        password(name: 'PASSWD',
+                 defaultValue: '',
+                 description: 'Please Enter your Gitlab password')
+
+        choice(name: 'TEST',
+               choices: ['functional', 'integration', 'regression', 'uat', 'release'],
+               description: 'select where need to deploy')
     }
-  }
- }
+
+    stages {
+
+        stage('Deploy') {
+            agent { label 'demo' }
+
+            steps {
+
+                git branch: 'main',
+                    credentialsId: 'GithubCred',
+                    url: 'https://github.com/Karnamakshay/Deployment-Springboot.git'
+
+                dir("./envs/${params.TEST}") {
+
+                    // Update image repository
+                    sh """
+                    sed -i 's|repository:.*|repository: ${params.ECRURL}${params.REPO}|g' values.yaml
+                    """
+
+                    // Update image tag
+                    sh """
+                    sed -i 's|tag:.*|tag: ${params.IMAGE}|g' values.yaml
+                    """
+                }
+
+                // Commit changes
+                sh 'git add .'
+                sh 'git commit -m "New deployment for Build ${IMAGE}" || echo "No changes to commit"'
+
+                // Push changes
+                sh """
+                git push https://Karnamakshay:${params.PASSWD}@github.com/Karnamakshay/Deployment-Springboot.git
+                """
+            }
+        }
+    }
 }
